@@ -1,63 +1,20 @@
-package com.wifiguard.app.model
+package com.wifiguard.app.network
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+object ManufacturerResolver {
+    private val prefixes = mapOf(
+        "F4:F5:D8" to "Google / Nest",
+        "BC:52:B7" to "Apple",
+        "3C:5A:B4" to "Google",
+        "28:6C:07" to "Samsung",
+        "44:65:0D" to "Amazon",
+        "D8:0D:17" to "TP-Link",
+        "C0:25:E9" to "TP-Link",
+        "A4:2B:B0" to "Huawei",
+        "E8:65:D4" to "Xiaomi"
+    )
 
-enum class DeviceStatus { TRUSTED, UNKNOWN, BLOCKED }
-enum class ConnectionEventType { CONNECTED, DISCONNECTED }
-enum class AlertType { NEW_DEVICE, DEVICE_DISCONNECTED, UNKNOWN_DEVICE, SECURITY_WARNING }
-
-@Entity(tableName = "devices")
-data class DeviceEntity(
-    @PrimaryKey val macAddress: String,
-    val name: String,
-    val manufacturer: String,
-    val ipAddress: String,
-    val status: DeviceStatus,
-    val firstSeen: Long,
-    val lastSeen: Long,
-    val connectionCount: Int,
-    val isOnline: Boolean
-)
-
-@Entity(tableName = "history")
-data class HistoryEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val macAddress: String,
-    val deviceName: String,
-    val ipAddress: String,
-    val eventType: ConnectionEventType,
-    val timestamp: Long
-)
-
-@Entity(tableName = "alerts")
-data class AlertEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val title: String,
-    val message: String,
-    val type: AlertType,
-    val timestamp: Long,
-    val isRead: Boolean = false
-)
-
-data class WifiInfoSummary(
-    val ssid: String = "Unknown WiFi",
-    val routerIp: String = "0.0.0.0",
-    val isConnected: Boolean = false
-)
-
-data class ScanResultDevice(
-    val name: String,
-    val manufacturer: String,
-    val ipAddress: String,
-    val macAddress: String
-)
-
-data class DashboardStats(
-    val totalDevices: Int = 0,
-    val unknownDevices: Int = 0,
-    val trustedDevices: Int = 0,
-    val totalConnections: Int = 0,
-    val newDevices: Int = 0,
-    val lastDevice: DeviceEntity? = null
-)
+    fun resolve(mac: String): String {
+        val oui = mac.uppercase().split(":").take(3).joinToString(":")
+        return prefixes[oui] ?: "Unknown manufacturer"
+    }
+}

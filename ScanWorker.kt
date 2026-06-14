@@ -1,55 +1,63 @@
-package com.wifiguard.app.data.repository
+package com.wifiguard.app.model
 
-import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.map
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-private val Context.settingsStore by preferencesDataStore("wifi_guard_settings")
+enum class DeviceStatus { TRUSTED, UNKNOWN, BLOCKED }
+enum class ConnectionEventType { CONNECTED, DISCONNECTED }
+enum class AlertType { NEW_DEVICE, DEVICE_DISCONNECTED, UNKNOWN_DEVICE, SECURITY_WARNING }
 
-class SettingsRepository(private val context: Context) {
-    private val scanIntervalKey = intPreferencesKey("scan_interval")
-    private val notificationsKey = booleanPreferencesKey("notifications")
-    private val autoScanKey = booleanPreferencesKey("auto_scan")
-    private val darkModeKey = booleanPreferencesKey("dark_mode")
-    private val remoteEnabledKey = booleanPreferencesKey("remote_enabled")
-    private val remoteEndpointKey = stringPreferencesKey("remote_endpoint")
-    private val remoteSiteIdKey = stringPreferencesKey("remote_site_id")
-    private val remoteTokenKey = stringPreferencesKey("remote_token")
+@Entity(tableName = "devices")
+data class DeviceEntity(
+    @PrimaryKey val macAddress: String,
+    val name: String,
+    val manufacturer: String,
+    val ipAddress: String,
+    val status: DeviceStatus,
+    val firstSeen: Long,
+    val lastSeen: Long,
+    val connectionCount: Int,
+    val isOnline: Boolean
+)
 
-    val settings = context.settingsStore.data.map {
-        AppSettings(
-            scanIntervalMinutes = it[scanIntervalKey] ?: 15,
-            notificationsEnabled = it[notificationsKey] ?: true,
-            autoScanOnStartup = it[autoScanKey] ?: true,
-            darkMode = it[darkModeKey] ?: true,
-            remoteEnabled = it[remoteEnabledKey] ?: false,
-            remoteEndpoint = it[remoteEndpointKey] ?: "",
-            remoteSiteId = it[remoteSiteIdKey] ?: "home",
-            remoteToken = it[remoteTokenKey] ?: ""
-        )
-    }
+@Entity(tableName = "history")
+data class HistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val macAddress: String,
+    val deviceName: String,
+    val ipAddress: String,
+    val eventType: ConnectionEventType,
+    val timestamp: Long
+)
 
-    suspend fun setScanInterval(minutes: Int) = context.settingsStore.edit { it[scanIntervalKey] = minutes }
-    suspend fun setNotifications(enabled: Boolean) = context.settingsStore.edit { it[notificationsKey] = enabled }
-    suspend fun setAutoScan(enabled: Boolean) = context.settingsStore.edit { it[autoScanKey] = enabled }
-    suspend fun setDarkMode(enabled: Boolean) = context.settingsStore.edit { it[darkModeKey] = enabled }
-    suspend fun setRemoteEnabled(enabled: Boolean) = context.settingsStore.edit { it[remoteEnabledKey] = enabled }
-    suspend fun setRemoteEndpoint(endpoint: String) = context.settingsStore.edit { it[remoteEndpointKey] = endpoint }
-    suspend fun setRemoteSiteId(siteId: String) = context.settingsStore.edit { it[remoteSiteIdKey] = siteId }
-    suspend fun setRemoteToken(token: String) = context.settingsStore.edit { it[remoteTokenKey] = token }
-}
+@Entity(tableName = "alerts")
+data class AlertEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val message: String,
+    val type: AlertType,
+    val timestamp: Long,
+    val isRead: Boolean = false
+)
 
-data class AppSettings(
-    val scanIntervalMinutes: Int,
-    val notificationsEnabled: Boolean,
-    val autoScanOnStartup: Boolean,
-    val darkMode: Boolean,
-    val remoteEnabled: Boolean,
-    val remoteEndpoint: String,
-    val remoteSiteId: String,
-    val remoteToken: String
+data class WifiInfoSummary(
+    val ssid: String = "Unknown WiFi",
+    val routerIp: String = "0.0.0.0",
+    val isConnected: Boolean = false
+)
+
+data class ScanResultDevice(
+    val name: String,
+    val manufacturer: String,
+    val ipAddress: String,
+    val macAddress: String
+)
+
+data class DashboardStats(
+    val totalDevices: Int = 0,
+    val unknownDevices: Int = 0,
+    val trustedDevices: Int = 0,
+    val totalConnections: Int = 0,
+    val newDevices: Int = 0,
+    val lastDevice: DeviceEntity? = null
 )

@@ -1,16 +1,30 @@
-package com.wifiguard.app
+package com.wifiguard.app.data
 
-import android.app.Application
-import com.wifiguard.app.data.AppContainer
-import com.wifiguard.app.worker.ScanScheduler
+import android.content.Context
+import com.wifiguard.app.data.local.WiFiGuardDatabase
+import com.wifiguard.app.data.repository.DeviceRepository
+import com.wifiguard.app.data.repository.SettingsRepository
+import com.wifiguard.app.network.NetworkScanner
+import com.wifiguard.app.notification.AlertNotifier
+import com.wifiguard.app.remote.RemoteMonitorClient
+import com.wifiguard.app.report.DatabaseBackupManager
+import com.wifiguard.app.report.ReportExporter
 
-class WiFiGuardApplication : Application() {
-    lateinit var container: AppContainer
-        private set
-
-    override fun onCreate() {
-        super.onCreate()
-        container = AppContainer(this)
-        ScanScheduler.schedule(this, 15)
-    }
+class AppContainer(context: Context) {
+    val appContext: Context = context.applicationContext
+    private val database = WiFiGuardDatabase.create(appContext)
+    val settingsRepository = SettingsRepository(appContext)
+    val notifier = AlertNotifier(appContext)
+    val scanner = NetworkScanner(appContext)
+    val reportExporter = ReportExporter(appContext)
+    val backupManager = DatabaseBackupManager(appContext) { database.close() }
+    val remoteClient = RemoteMonitorClient()
+    val deviceRepository = DeviceRepository(
+        deviceDao = database.deviceDao(),
+        historyDao = database.historyDao(),
+        alertDao = database.alertDao(),
+        scanner = scanner,
+        notifier = notifier,
+        remoteClient = remoteClient
+    )
 }

@@ -1,30 +1,15 @@
-package com.wifiguard.app.data
+package com.wifiguard.app.data.local
 
-import android.content.Context
-import com.wifiguard.app.data.local.WiFiGuardDatabase
-import com.wifiguard.app.data.repository.DeviceRepository
-import com.wifiguard.app.data.repository.SettingsRepository
-import com.wifiguard.app.network.NetworkScanner
-import com.wifiguard.app.notification.AlertNotifier
-import com.wifiguard.app.remote.RemoteMonitorClient
-import com.wifiguard.app.report.DatabaseBackupManager
-import com.wifiguard.app.report.ReportExporter
+import androidx.room.TypeConverter
+import com.wifiguard.app.model.AlertType
+import com.wifiguard.app.model.ConnectionEventType
+import com.wifiguard.app.model.DeviceStatus
 
-class AppContainer(context: Context) {
-    val appContext: Context = context.applicationContext
-    private val database = WiFiGuardDatabase.create(appContext)
-    val settingsRepository = SettingsRepository(appContext)
-    val notifier = AlertNotifier(appContext)
-    val scanner = NetworkScanner(appContext)
-    val reportExporter = ReportExporter(appContext)
-    val backupManager = DatabaseBackupManager(appContext) { database.close() }
-    val remoteClient = RemoteMonitorClient()
-    val deviceRepository = DeviceRepository(
-        deviceDao = database.deviceDao(),
-        historyDao = database.historyDao(),
-        alertDao = database.alertDao(),
-        scanner = scanner,
-        notifier = notifier,
-        remoteClient = remoteClient
-    )
+class Converters {
+    @TypeConverter fun toDeviceStatus(value: String) = DeviceStatus.valueOf(value)
+    @TypeConverter fun fromDeviceStatus(value: DeviceStatus) = value.name
+    @TypeConverter fun toEventType(value: String) = ConnectionEventType.valueOf(value)
+    @TypeConverter fun fromEventType(value: ConnectionEventType) = value.name
+    @TypeConverter fun toAlertType(value: String) = AlertType.valueOf(value)
+    @TypeConverter fun fromAlertType(value: AlertType) = value.name
 }
